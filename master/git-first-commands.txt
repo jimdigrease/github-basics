@@ -1,0 +1,156 @@
+https://git-scm.com/docs
+
+INITIALS
+
+1. $ git init <directory>                     -> or init it inside directory with no directory specified
+2. $ git config --global user.email "<email>" -> do globally or omit global flag to define author of commits just in one concrete project
+3. $ git config --global user.name "<name>"   -> -----//-----
+4. $ git add <filename> 
+OR
+5. $ git add . 
+6. $ git commit -m "<message>" 
+7. $ git log
+8. $ git status  -> working tree: current branch, unstaged and/or uncommited changes, and untracked files
+
+-----------------------------------------------------------------------
+
+BRANCHES
+
+BASIC BRANCHES COMMANDS
+$ git branch   - list of all branches where current branch marked with *
+$ git switch <branch>             -> move to branch
+$ git switch -c <branch>          -> switch to a new branch
+$ git checkout -b <branch-name>   -> create and checkout a new branch
+$ git checkout <branch-name>      -> move to branch and checkout
+$ git branch -D <branch>   -> delete branch, -d flag - delete if this branch was fully merged with its upstream branch, -D flag - delete it anyway (shortcut for --delete --force). Also could delete a multiple branches just repeating its separated by spaces.
+
+RESTORE BRANCHES
+Like with commits, if branch was deleted and then needed to be restored, could use again $ git reflog -> to see hashes of commits and use: 
+$ git checkout <commit-hash>  -> to restore commit in detachedHead mode and then use both or $ git checkout -b <branch-name> -> or $ git switch -c <branch> -> where is restored commit now again.
+
+MERGE BRANCHES
+I. "Fast-Forward Merge":
+$ git merge <branch>   -> "Fast-forward" merge - the default merge strategy, it add <branch> to the current branch. If the <branch> was founded on current branch, it just fast-forward HEAD pointer to latest commit of <branch> but don't create a new commit about this transformation. How it could be created? 
+  Possible steps: 
+1. Init project with credentials. 
+2. Create couple of commits in current (for example master branch). 
+3. Create a brand new branch with command $ git switch <branch> -> it creates a new branch that contains files of current branch, but NOT commits.
+4. Switch to an initial branch with $ git switch <branch>
+5. And then $ git merge <branch>  -> all files and commits from second branch will be added to current branch, and HEAD points at (HEAD -> initial-branch, new-branch), because the HEAD of both branches now points at the latest commit of merged branch. 
+6. To UNDO this changes can use $ git reset --hard HEAD~<num>  -> to move HEAD to the latest commit of initial branch by removing the <num> of commits that belongs to the added branch.
+To AVOID adding commits of a second branch to initial branch can use:
+$ git merge --squash <branch> -> initial branch will not contain commits of second branch after merging, so then we should add a new commit to describe this change. The HEAD in this case will point only at current branch's latest commit (HEAD -> initial-branch).
+II. "Recursive Merge":
+$ git merge --no-ff <branch>  -> Merge made by 'recursive' strategy. Creates a merged branch that contains complete history of branches, all commits and also one additional commit made by Git with text 'Merge branch <branch> into <initial-branch>'. Also HEAD points at (HEAD -> initial-branch). "Recursive Merge" more useful in the cases when new commits will be created not only in second branch (which is made out of initial branch), but also in initial branch AFTER the second branch was created, but before merging. Actually in this case the 'recursive' strategy will be the default instead of 'fast-forward', even if you don't type '--no-ff' flag.
+$ git merge --squash <branch> -> In this case also not added the commits from second branch into initial branch and Git-made commit obout merging as well, so there will be uncommited changes (which could be seen by $ git status), that could be commited or unstaged manually.
+To UNDO this 'recursive' merging can also use 'reset' but specify only one (latest) merge-commit that created by Git: 
+$ git reset --hard HEAD~1
+
+REBASE (alternative to 'recursive' MERGE strategy) 
+It works in the same case, when in initial branch added new commits, which is none in second branch, but which is needed in second branch - then it useful. The difference in that with rebase last commits of the initial branch (not initial ones, but newly created after creating second branch, that not exist in second branch) will be added before additional commits created in second branch and the latest one of them became the base commit in second branch. And thereafter it merges with initial branch. But this commits (newly created in second branch) not 'moved' like existing ones, but created brand new commits with other hashes, that just looks like that 'old' commits and contains the same messages. Therfore rebase re-write code history. Based on all this information should make one important issue. This approach is OK to use it inside the local repository, but not recommended to use it in public repositories when collaborating with other people, for example on GitHub and so on. 
+$ git rebase <initial-branch> -> call it from the second branch and then result of second branch will look like: 
+<m1>-<m2>-<m3(master)>-<s1>-<s2(HEAD)> 
+where m3 - commit made in master branch AFTER second branch was made based on master, s1-s2 - commits of second branch made also after it was created, and HEAD points on (HEAD -> second-branch) at s2 commit.
+Then do just simple merge: 
+$ git merge <second-branch>   -> to conclude combining two approaches to have result of initial branch looks like: 
+<m1>-<m2>-<m3>-<s1>-<s2(HEAD)> 
+where HEAD points on (HEAD -> master, second-branch) at s2 commit.
+
+CHERRY-PICK 
+This technique allows to merge only one specific (not latest) commit from second branch to initial branch, creating a clone-commit with new id 
+$ git cherry-pick <id>  -> where <id> - a long unique hashed string of commit from second branch, but use this command from initial branch
+
+
+MERGE CONFLICTS
+$ git merge --abort  -> abort last merge 
+$ git log --merge    -> shows conflicts of merging
+$ git diff           -> also allows to see conflicts
+
+-----------------------------------------------------------------------
+
+FILES
+
+$ git ls-files             -> shows list of files in staging area 
+$ git restore <filename>   -> discard changes in working directory
+$ git rm <filename>        -> remove file from staging area
+OR could delete file manually and use 'git add <filename>' to update changes
+$ git checkout <filename>  -> checkout file OR also UNDO UNSTAGED CHANGES (not added to staging area)
+$ git checkout .           -> checkout ALL files (get back to all HEAD-status of all commits of all tracked files) it also UNDO unstaged changes in ALL files OR just use (from git v-2.23): 
+$ git restore . 
+$ git restore <file>
+$ git clean -d   -> prepare to delete ALL untracked files and directories from working directory 
+$ git clean -dn  -> ----//---- and also list all entries it would delete 
+$ git clean -df  -> force deletion - actually deleting
+
+To UNDO STAGED CHANGES can use 2 steps:
+1. $ git reset <file>    -> copies latest stage of file into the staging area but not changes the working directory, so changes become unstaged and THEN:
+2. $ git checkout <file> -> again to reset changes in working directory. But maybe git reset more useful for deleting commits.
+OR use more explicit command (from git v-2.23): 
+1. $ git restore --unstaged <file> 
+2. $ git checkout <file> 
+PS. reset command is more useful and convenient to another usage (see COMMITS), so use second variant (if git >= v-2.23)
+
+-----------------------------------------------------------------------
+
+COMMITS
+
+$ git checkout <commit-id> -> move to commit and checkout
+RESET
+$ git reset --soft HEAD~1  -> remove ONE latest commit (number is quantity, if 2, delete 2 latest commits, and so on), but leave the working directory unchanged.
+$ git reset HEAD~1         -> default deletion removes commit from staging area and leave changes in file untracked
+$ git reset --hard HEAD~1  -> remove latest commit from staging area and latest changes in working directory 
+$ git commit --amend --no-edit -> allows to add new changes to the latest commit when it's undesirable to create a new commit for a small change, when e.g. forgot to format, add spaces or comment, to edit text or a little bug, some unimportant change. Before this command need to $ git add .
+$ git commit --amend  -> change latest commit's message (or <-a> flag)
+STASH
+$ git stash            -> allows to move to the latest commit undeleting unstaged change, and THEN: 
+$ git stash apply      -> moving back (or forth?) to the latest unstaged change and shows status
+$ git stash list       -> allows to see all unstaged changes if it's many (multiple save steps)
+$ git stash apply <id> -> moving back to unstaged change with index (number) in stash list. It could be called only from the latest commit, if call it from unstaged but stashed change it will show the error and create another one stash entry with the same information as active stash entry has.
+$ git stash push -m "<message>" -> add stash with message 
+$ git stash pop <id>            -> add "stash commit" to project and remove it from the stash area, then need to add it and do commit.
+$ git stash drop <id>           -> delete a specific stash
+$ git stash clear               -> clear all stash area
+$ git reflog             -> shows all commits and changes for 30 days - its all cashed for this term. Every entry has hash-id, by which it could be restored, for example: $ git reset --hard <hash>  -> HEAD automatically changed back for this hash (and this commit), even if the file was deleted (e.g. by command $ git reset --hard HEAD~1) it will be restored. Also can restore branches by this way (see BRANCHES).
+TAGS
+$ git tag                     -> show tags
+$ git tag <name> <commit-id>  -> add a new tag at specific commit (it's a lightweight tag, temporary) 
+To see specific commit with this tag should use another command that shows a full Git object 
+$ git show <tag-name>         -> also can use: 
+$ git checkout <tag-name>     -> to get access to this tag in detached.HEAD state, and: 
+$ git tag -d <tag-name>       -> remove lightweight tag 
+$ git tag -a <name> -m <message>  -> creates an Unnotated tag, that can be added only (as I understood) to the HEAD-commit (the latest commit), and it also could be shown and deleted by the same commands
+
+-----------------------------------------------------------------------
+
+REMOTE (GitHub)
+
+COPY, CREATE, FETCH, UPDATE
+$ git clone <URL>  -> clone remote repository to the local machine, <URL> - cloning URL on GitHub
+$ git remote add origin <URL>  -> add connection repository to remote storage, where <origin> - alias for the URL, it could be any, but 'origin' by default, <URL> - URL of repository 
+$ git branch -M <main>         -> could rename branch to 'main' as a default but optional 
+$ git push origin <branch>     -> add local repository data to the remote repository, 'origin' - default alias for the URL (see above)
+$ git push -u origin <branch>  -> does the same AND creates a Local Tracking Branch
+$ git pull origin <branch>     -> is opposit command to git push. It replaces two commands with one: $ git fetch -> fetch the branch from remote repository and copy it into Remote-Tracking Branch, and then $ git merge -> merge this copied branch with local corresponding branch.
+The Personal Access Token, if it was generated on GitHub and entered in modal, stored in the Credentials Manager of MS Windows.
+$ git fetch origin  -> just updates the local remote state with the latest state on GitHub, without merging anything or changing structure. This fetched branch in RTB but not added in local repo could be accessed by $ git checkout remotes/origin/<branch> -> in detachedHead mode and then could be added in the newly created branch, but there is a better approach: 
+$ git branch --track <branch> origin/<branch>  -> creates a new branch, so called Local Tracking Branch, that is the reference to the Remote-Tracking Branches, and it's editable unlike RTB. Then can add a file  and commit and after, to apply this changes can use: 
+$ git push  -> just like this without origin etc. to update remote branch (on GitHub), but important notation: the name of LTB must be equal to RTB. and also: 
+$ git pull  -> just like this without origin etc. as well to update LTB.
+LISTS
+$ git remote  -> shows current remote service (e.g. origin)
+$ git remote show origin       -> shows more detailed information about remote configuration
+$ git branch -a  -> shows ALL branches, not only local repository branch, but also Remote-Tracking Branch, so-called local copy of remote branch or local copy of branch prepared for remote branch. It can be named as intermediate storage between corresponding branches in local and in remote repos. It could looks tipically like 'remotes/origin/master', coloured in red (in IDE). And also Local Tracking Branches
+$ git branch -r     -> shows only Remote-Tracking Branches.
+$ git ls-remote   -> shows a list of remote branches on GitHub in repo by current URL, even if branch was created on GitHub, but wasn't pulled down to the local repo as RTB. 
+$ git branch -vv  -> shows a list of local branches and LTB with their remotes. It allows to distinguish LTB from regular local branch, because LTB has a refference at RTB in square brackets like this [origin/<branch>]
+DELETE 
+$ git branch --delete --remotes origin/<branch>  -> delete RTB
+$ git push origin --delete <branch>              -> delete remote branch (on GitHub) and RTB as well
+WARNING! Next steps deletes commits on GitHub, so be careful and responsible with it when collab. 
+$ git reset --hard HEAD~1          -> deletes local commit and to delete it on GitHub need next: 
+$ git push --force origin <branch> -> to delete it also on GitHub
+
+-----------------------------------------------------------------------
+
+USEFUL RECOMENDATIONS
+https://ohshitgit.com/ru
